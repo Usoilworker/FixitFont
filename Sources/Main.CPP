@@ -1,20 +1,13 @@
+#include "wx/wx.h"
+#include "gui.h" // Include the header for our GUI frame
+#include "main.h" // Include the main application header
 
-#include "main.h"
+wxIMPLEMENT_APP(FontGeneratorApp);
 
-TestFrame::TestFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(400, 300)) {
-    // Add a simple text control
-    wxTextCtrl* textCtrl = new wxTextCtrl(this, wxID_ANY, "Hello, wxWidgets!");
-    // Center the text control within the frame
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(textCtrl, 1, wxEXPAND | wxALL, 10);
-    SetSizer(sizer);
-    Centre();
-}
-
-bool TestApp::OnInit() {
-    TestFrame* frame = new TestFrame("Test wxWidgets Window");
+bool FontGeneratorApp::OnInit() {
+    MainFrame* frame = new MainFrame("Font Generator", wxPoint(50, 50), wxSize(800, 600));
+    frame->Move(wxPoint(100, 100));
+    frame->SetClientSize(800, 600); // Set size again
     frame->Show(true);
     return true;
 }
-
-wxIMPLEMENT_APP(TestApp);

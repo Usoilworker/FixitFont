@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # Rename to desired project name WX_Project
 
-project(Wx_Project)
+project(FixitFont)
 
 # Turnoff Cmake Autoconfig until initial settings are made.
 if(NOT DEFINED WX_PROJECT_ACTIVE)
@@ -36,12 +36,13 @@ find_package(wxWidgets REQUIRED)
 
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/Include
     ${wxWidgets_INCLUDE_DIRS}
   )
-
+  # Add additional sources as they are added.
   set(SOURCES
-    Sources/main.cpp
+    Sources/main.CPP
+    Sources/gui.CPP
     # Add other source files here, e.g., Sources/MyFrame.cpp
   )
 

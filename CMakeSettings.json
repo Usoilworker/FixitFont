@@ -22,12 +22,12 @@
         },
         {
           "name": "WX_PROJECT_ACTIVE",
-          "value": "False",
+          "value": "True",
           "type": "BOOL"
         },
         {
           "name": "WX_LNK_VERBOSE",
-          "value": "False",
+          "value": "True",
           "type": "BOOL"
         }
       ]
@@ -61,7 +61,12 @@
         },
         {
           "name": "WX_PROJECT_ACTIVE",
-          "value": "False",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "CMAKE_VERBOSE_MAKEFILE",
+          "value": "True",
           "type": "BOOL"
         }
       ]
