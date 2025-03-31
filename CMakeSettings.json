@@ -1,0 +1,70 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-DLL-Release",
+      "generator": "Visual Studio 17 2022 Win64",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\Build\\Out\\${name}",
+      "installRoot": "${projectDir}\\Build\\Out\\Install\\${name}",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "wxWidgets_LIB_DIR",
+          "value": "D:/Programming/wxWidgets-3.2.6/out/install/x64-Release/lib/vc_x64_dll",
+          "type": "PATH"
+        },
+        {
+          "name": "wxWidgets_wxrc_EXECUTABLE",
+          "value": "D:/Programming/wxWidgets-3.2.6/out/install/x64-Release/bin/wxrc.exe",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "WX_PROJECT_ACTIVE",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "WX_LNK_VERBOSE",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "x64-STATIC-Release",
+      "generator": "Visual Studio 17 2022 Win64",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\Build\\Out\\${name}",
+      "installRoot": "${projectDir}\\Build\\Out\\Install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "intelliSenseMode": "windows-msvc-x64",
+      "variables": [
+        {
+          "name": "wxWidgets_LIB_DIR",
+          "value": "D:/Programming/wxWidgets-3.2.6/out/install/x64-Release_Static/lib/vc_x64_lib",
+          "type": "PATH"
+        },
+        {
+          "name": "wxWidgets_wxrc_EXECUTABLE",
+          "value": "D:/Programming/wxWidgets-3.2.6/out/install/x64-Release_Static/bin/wxrc.exe",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "wx_static",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "WX_PROJECT_ACTIVE",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
+    }
+  ]
+}

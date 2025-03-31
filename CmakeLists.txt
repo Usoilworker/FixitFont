@@ -1,0 +1,100 @@
+cmake_minimum_required(VERSION 3.20)
+
+# Rename to desired project name WX_Project
+
+project(Wx_Project)
+
+# Turnoff Cmake Autoconfig until initial settings are made.
+if(NOT DEFINED WX_PROJECT_ACTIVE)
+  message(STATUS "Variable 'WX_PROJECT_ACTIVE' is not defined. Configure CMakeSettings.json and CMakeLists.txt and set to TRUE.")
+  option(WX_PROJECT_ACTIVE "WX_PROJECT_ACTIVE" OFF)
+endif()
+
+if(NOT DEFINED wx_static)
+  message(Status "Default project Dynamic linked - set wx_static for Static Builds")
+  option(wx_static "wx_static" OFF)
+endif()
+# Check for Verbose Linking Switch (Helps with Resolving Runtime Dependencies)
+if(NOT DEFINED WX_LNK_VERBOSE)
+  option(WX_LNK_VERBOSE "WX_LNK_VERBOSE" ON)
+  message(WARNING "Verbose Linking set by Default")
+endif()
+
+
+if(WX_PROJECT_ACTIVE)
+    if (wx_static)
+     set (wxWidgets_USE_STATIC ON)
+    if(CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebug" CACHE STRING "MSVC runtime library" FORCE)
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded" CACHE STRING "MSVC runtime library" FORCE)
+    endif()
+endif()
+
+
+find_package(wxWidgets REQUIRED)
+
+
+  include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${wxWidgets_INCLUDE_DIRS}
+  )
+
+  set(SOURCES
+    Sources/main.cpp
+    # Add other source files here, e.g., Sources/MyFrame.cpp
+  )
+
+  add_executable(${PROJECT_NAME} ${SOURCES})
+
+  # Link wxWidgets libraries
+  target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
+  # Add Verbose linking
+  if(WX_LNK_VERBOSE)
+  target_link_options(${PROJECT_NAME} PRIVATE "/VERBOSE")
+  endif()
+ 
+  # Set preprocessor definitions for wxWidgets
+  
+  # Check if wxWidgets is built statically or shared
+if(wxWidgets_USE_STATIC)
+message( WARNING "STATIC BUILD ACTIVE")
+  set(MY_WX_COMPILE_DEFINITIONS
+      PRIVATE
+       wxUSE_UNICODE
+       _UNICODE
+       UNICODE
+      # Add other static build specific defines here.
+  )
+else()
+  set(MY_WX_COMPILE_DEFINITIONS
+      PRIVATE
+       WXUSINGDLL
+      wxUSE_UNICODE
+    _UNICODE
+    UNICODE
+    # Add shared build specific defines here.
+  )
+  message(WARNING "NON-STATIC BUILD")
+endif()
+
+  target_compile_definitions(${PROJECT_NAME} ${MY_WX_COMPILE_DEFINITIONS})
+  
+
+  if(WIN32)
+    # Explicitly set the SUBSYSTEM to WINDOWS
+    target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS")
+
+    if(DEFINED wxWidgets_LIB_DIR)
+      file(GLOB WX_DLLS "${wxWidgets_LIB_DIR}/wx*.dll")
+
+      install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+      install(FILES ${WX_DLLS} DESTINATION bin)
+
+      message(WARNING "Using file(GLOB) to find DLLs. This is a TEMPORARY solution. For production builds, explicitly list the required wxWidgets DLLs.")
+      message(WARNING "Use RUN DUMPBIN \\DEPENDENTS ON executable to help determin Runtime requirements")
+    else()
+      message(WARNING "wxWidgets_LIB_DIR is not defined.")
+    endif()
+  endif()
+endif()
