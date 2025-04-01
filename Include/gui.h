@@ -5,6 +5,7 @@
 #include <wx/frame.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
+#include "pixelgrid.h" // Include the PixelGrid header
 
 class MainFrame : public wxFrame {
 public:
@@ -13,6 +14,7 @@ public:
 
 private:
     wxPanel* m_mainPanel; // Main panel to hold our UI elements
+    PixelGrid* m_pixelGrid; // Pointer to the PixelGrid
 
     wxDECLARE_EVENT_TABLE();
 };

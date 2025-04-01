@@ -43,7 +43,8 @@ find_package(wxWidgets REQUIRED)
   set(SOURCES
     Sources/main.CPP
     Sources/gui.CPP
-    # Add other source files here, e.g., Sources/MyFrame.cpp
+    Sources/pixelgrid.CPP
+    
   )
 
   add_executable(${PROJECT_NAME} ${SOURCES})
