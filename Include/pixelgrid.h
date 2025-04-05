@@ -15,6 +15,7 @@ public:
 private:
     void OnPaint(wxPaintEvent& event);
     void OnMouseLeftDown(wxMouseEvent& event);
+    void OnSize(wxSizeEvent& event); // Declare the size event handler HERE
 
     wxDECLARE_EVENT_TABLE();
 

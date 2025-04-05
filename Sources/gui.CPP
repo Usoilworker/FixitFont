@@ -5,27 +5,26 @@ wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
     : wxFrame(nullptr, wxID_ANY, title, pos, size) {
-    // Create the main panel
+    // Create a main panel
     wxPanel* mainPanel = new wxPanel(this, wxID_ANY);
 
     // Create the PixelGrid as a child of the main panel
     m_pixelGrid = new PixelGrid(mainPanel);
 
-    // Create a sizer to manage the layout
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(m_pixelGrid, 1, wxALL | wxEXPAND, 10); // Add PixelGrid to the sizer
+    // Create a sizer for the main panel
+    wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
+    panelSizer->Add(m_pixelGrid, 0, wxALL, 10); // No expand for PixelGrid
+    mainPanel->SetSizer(panelSizer);
+    panelSizer->Fit(mainPanel); // Fit panel to PixelGrid's best size
 
-    // Set the sizer for the main panel
-    mainPanel->SetSizer(mainSizer);
-    mainPanel->Fit(); // Fit the panel to its content
+    // Create a sizer for the frame and add the main panel
+    wxBoxSizer* frameSizer = new wxBoxSizer(wxVERTICAL);
+    frameSizer->Add(mainPanel, 0, wxALL | wxALIGN_TOP | wxALIGN_LEFT, 10); // No expand for panel, align top-left
+    SetSizer(frameSizer);
+    Fit();
+    SetMinSize(GetSize());
 
-    // Set the sizer for the frame
-    SetSizer(new wxBoxSizer(wxVERTICAL)); // Create a new sizer for the frame
-    GetSizer()->Add(mainPanel, 1, wxALL | wxEXPAND, 0); // Add the main panel to the frame's sizer
-    Fit(); // Tell the Frame to use the sizer and fit
-    SetMinSize(GetSize()); // Optional: Set the initial size as the minimum size
-
-    m_mainPanel = mainPanel; // Store the main panel (optional, but good practice if you need to refer to it later)
+    m_mainPanel = mainPanel; // Store the main panel
 }
 
 MainFrame::~MainFrame() {
