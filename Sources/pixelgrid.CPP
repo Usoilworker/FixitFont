@@ -20,7 +20,7 @@ PixelGrid::~PixelGrid() {
 }
 
 wxSize PixelGrid::DoGetBestSize() const {
-    return wxSize(GRID_SIZE * 20, GRID_SIZE * 20); // Each pixel is 20x20
+    return wxSize(GRID_SIZE * 10, GRID_SIZE * 10); // Each pixel is 20x20
 }
 
 void PixelGrid::OnPaint(wxPaintEvent& event) {
