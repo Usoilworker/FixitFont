@@ -6,6 +6,7 @@
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include "pixelgrid.h" // Include the PixelGrid header
+#include "fontdata.h"  // Include the FontData header
 
 class MainFrame : public wxFrame {
 public:
@@ -13,8 +14,12 @@ public:
     ~MainFrame();
 
 private:
-    wxPanel* m_mainPanel; // Main panel to hold our UI elements
+    wxPanel* m_mainPanel;   // Main panel to hold our UI elements
     PixelGrid* m_pixelGrid; // Pointer to the PixelGrid
+    FontData m_fontData;    // Instance of FontData
+    int m_currentCharacter; // Currently selected character
+
+    void OnCharSelected(wxSpinEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };

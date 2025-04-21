@@ -44,7 +44,7 @@ find_package(wxWidgets REQUIRED)
     Sources/main.CPP
     Sources/gui.CPP
     Sources/pixelgrid.CPP
-    
+    Sources/fontdata.cpp
   )
 
   add_executable(${PROJECT_NAME} ${SOURCES})
