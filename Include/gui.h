@@ -22,11 +22,14 @@ private:
     FontData m_fontData;
     int m_currentCharacter;
     wxTextCtrl* m_logWindow; // New text control for the console
+    wxSpinCtrl* m_charSelector;
+    wxButton* m_clearButton; // New button to clear the grid
 
     void SaveCurrentCharacterData();
     void LoadCharacterDataToGrid();
     void OnCharSelected(wxSpinEvent& event);
     void LogMessage(const wxString& message); // Helper function for logging
+    void OnClearButtonClicked(wxCommandEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };
