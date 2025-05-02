@@ -5,8 +5,11 @@
 #include <wx/frame.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
-#include "pixelgrid.h" // Include the PixelGrid header
-#include "fontdata.h"  // Include the FontData header
+#include <wx/textctrl.h>
+#include <wx/stattext.h>
+#include <wx/spinctrl.h>
+#include "pixelgrid.h"
+#include "fontdata.h"
 
 class MainFrame : public wxFrame {
 public:
@@ -14,12 +17,16 @@ public:
     ~MainFrame();
 
 private:
-    wxPanel* m_mainPanel;   // Main panel to hold our UI elements
-    PixelGrid* m_pixelGrid; // Pointer to the PixelGrid
-    FontData m_fontData;    // Instance of FontData
-    int m_currentCharacter; // Currently selected character
+    wxPanel* m_mainPanel;
+    PixelGrid* m_pixelGrid;
+    FontData m_fontData;
+    int m_currentCharacter;
+    wxTextCtrl* m_logWindow; // New text control for the console
 
+    void SaveCurrentCharacterData();
+    void LoadCharacterDataToGrid();
     void OnCharSelected(wxSpinEvent& event);
+    void LogMessage(const wxString& message); // Helper function for logging
 
     wxDECLARE_EVENT_TABLE();
 };

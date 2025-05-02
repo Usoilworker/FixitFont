@@ -7,8 +7,8 @@ EVT_LEFT_DOWN(PixelGrid::OnMouseLeftDown)
 EVT_SIZE(PixelGrid::OnSize)
 wxEND_EVENT_TABLE()
 
-PixelGrid::PixelGrid(wxPanel* parent)
-    : wxPanel(parent) {
+PixelGrid::PixelGrid(wxPanel* parent, std::function<void()> onPixelChanged)
+    : wxPanel(parent), m_onPixelChanged(onPixelChanged) {
     // Initialize character data to 0 (all pixels off)
     for (int i = 0; i < 8; ++i) {
         m_characterData[i] = 0;
@@ -17,7 +17,6 @@ PixelGrid::PixelGrid(wxPanel* parent)
 
 PixelGrid::~PixelGrid() {
 }
-
 wxSize PixelGrid::DoGetBestSize() const {
     return wxSize(8 * 10, 8 * 10); // Fixed preferred size of 80x80
 }
@@ -31,6 +30,12 @@ void PixelGrid::GetCharacterData(std::array<unsigned char, 8>& data) const {
     data = m_characterData;
 }
 
+void PixelGrid::SetRowData(int row, unsigned char data) {
+    if (row >= 0 && row < GRID_SIZE) {
+        m_characterData[row] = data;
+        Refresh();
+    }
+}
 void PixelGrid::OnPaint(wxPaintEvent& event) {
     wxPaintDC dc(this);
     wxSize clientSize = GetClientSize();
@@ -63,6 +68,9 @@ void PixelGrid::OnMouseLeftDown(wxMouseEvent& event) {
     if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
         m_characterData[row] ^= (1 << (7 - col)); // Toggle the bit
         Refresh();
+        if (m_onPixelChanged) {
+            m_onPixelChanged(); // Call the callback
+        }
     }
 }
 

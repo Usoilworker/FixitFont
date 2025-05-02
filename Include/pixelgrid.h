@@ -4,16 +4,17 @@
 #include <wx/panel.h>
 #include <wx/dcclient.h>
 #include <wx/event.h>
-#include <array> // For std::array
+#include <array>
+#include <functional> // For std::function
 
 class PixelGrid : public wxPanel {
 public:
-    PixelGrid(wxPanel* parent);
+    PixelGrid(wxPanel* parent, std::function<void()> onPixelChanged);
     ~PixelGrid();
 
     void SetCharacterData(const std::array<unsigned char, 8>& data);
     void GetCharacterData(std::array<unsigned char, 8>& data) const;
-
+    void SetRowData(int row, unsigned char data);// Added for testing
     wxSize DoGetBestSize() const override;
 
 private:
@@ -24,7 +25,8 @@ private:
     wxDECLARE_EVENT_TABLE();
 
     static const int GRID_SIZE = 8;
-    std::array<unsigned char, 8> m_characterData; // 8 bytes to store the character data
+    std::array<unsigned char, 8> m_characterData;
+    std::function<void()> m_onPixelChanged; // Callback function
 };
 
 #endif
