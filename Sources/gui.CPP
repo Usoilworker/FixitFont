@@ -58,15 +58,21 @@ void MainFrame::LoadCharacterDataToGrid() {
         std::bitset<8> rowBits = m_fontData.characterPatterns[m_currentCharacter * 8 + i];
         for (int bit = 0; bit < 8; ++bit) {
             if (rowBits[bit]) {
-                byte |= (1 << bit); // Changed the bit shift here
+                byte |= (1 << bit); // Ensure this is the correct bit order
             }
         }
         charData[i] = byte;
     }
-    m_pixelGrid->SetCharacterData(charData);
-    LogMessage(wxString::Format("Loaded character %d.", m_currentCharacter));
-}
 
+    wxString logMessage = wxString::Format("Loaded character %d: ", m_currentCharacter);
+    for (unsigned char val : charData) {
+        logMessage += wxString::Format("%02X ", val);
+    }
+    LogMessage(logMessage); // Output the loaded data to the console
+
+    m_pixelGrid->SetCharacterData(charData);
+    LogMessage(wxString::Format("Loaded character %d into grid.", m_currentCharacter));
+}
 void MainFrame::SaveCurrentCharacterData() {
     if (m_pixelGrid) {
         std::array<unsigned char, 8> charData;
