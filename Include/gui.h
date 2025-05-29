@@ -15,6 +15,7 @@ class MainFrame : public wxFrame {
 public:
     MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
     ~MainFrame();
+    void OnSave(wxCommandEvent& event); // For a menu item or button
 
 private:
     wxPanel* m_mainPanel;
@@ -24,13 +25,15 @@ private:
     wxTextCtrl* m_logWindow; // New text control for the console
     wxSpinCtrl* m_charSelector;
     wxButton* m_clearButton; // New button to clear the grid
+    wxButton* m_saveButton; // New button for saving
 
     void SaveCurrentCharacterData();
     void LoadCharacterDataToGrid();
     void OnCharSelected(wxSpinEvent& event);
     void LogMessage(const wxString& message); // Helper function for logging
     void OnClearButtonClicked(wxCommandEvent& event);
-
+    void SaveToFile(const wxString& filePath);
+    void OnSaveButtonClicked(wxCommandEvent& event);
     wxDECLARE_EVENT_TABLE();
 };
 
