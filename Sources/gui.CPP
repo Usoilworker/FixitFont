@@ -5,6 +5,8 @@
 #include <array>
 #include <bitset>
 #include <wx/button.h>
+#include <wx/wfstream.h>
+#include <wx/txtstrm.h>
 
 // Event Table Defenition
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
@@ -57,12 +59,24 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     Fit();
     SetMinSize(GetSize());
 
-    m_mainPanel = mainPanel;
+    m_mainPanel = mainPanel; // Store the main panel
 
-    // Initialize PixelGrid with data for the first character
-    LoadCharacterDataToGrid();
+    // Initialize some font data for testing
+    // Note: charA_pattern should also be a std::array<std::bitset<8>, 8>
+    std::array<std::bitset<FontData::PATTERN_BITS_PER_ROW>, FontData::PATTERN_ROWS> charA_pattern = {
+        std::bitset<8>("00011000"), std::bitset<8>("00100100"),
+        std::bitset<8>("01000010"), std::bitset<8>("01111110"),
+        std::bitset<8>("10000001"), std::bitset<8>("10000001"),
+        std::bitset<8>("10000001"), std::bitset<8>("00000000")
+    };
+    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) { // Loop 8 times for the 8 rows
+        // Assign the entire std::bitset for each row
+        m_fontData.characterPatterns[65][i] = charA_pattern[i]; // Store 'A' at index 65 (ASCII)
+    }
 
-    LogMessage("Font Generator Started."); // Initial log message
+    LoadCharacterDataToGrid(); // Load the initially selected character's data
+
+    LogMessage("Font Generator Started.");
 }
 
 MainFrame::~MainFrame() {
@@ -84,12 +98,21 @@ void MainFrame::OnClearButtonClicked(wxCommandEvent& event) {
 }
 void MainFrame::LoadCharacterDataToGrid() {
     std::array<unsigned char, 8> charData;
-    for (int i = 0; i < 8; ++i) {
+    // Iterate through the 8 rows of the current character
+    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) { // Loop through the 8 rows
+        // Access the std::bitset for the current character's current row
+        // Indexing is now characterPatterns[character_index][row_index]
+        std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits = m_fontData.characterPatterns[m_currentCharacter][i];
+
         unsigned char byte = 0;
-        std::bitset<8> rowBits = m_fontData.characterPatterns[m_currentCharacter * 8 + i];
-        for (int bit = 0; bit < 8; ++bit) {
-            if (rowBits[bit]) {
-                byte |= (1 << bit); // Ensure this is the correct bit order
+        // Convert the bitset row to an unsigned char
+        for (int bit = 0; bit < FontData::PATTERN_BITS_PER_ROW; ++bit) {
+            // Check if the bit is set (from left to right in bitset, corresponds to MSB to LSB in byte)
+            // bitset<N> index is 0 for LSB, N-1 for MSB
+            // For drawing, we usually want bit 0 to be the leftmost pixel, bit 7 to be the rightmost.
+            // If bitset<8>[0] is the rightmost, and bitset<8>[7] is the leftmost:
+            if (rowBits[FontData::PATTERN_BITS_PER_ROW - 1 - bit]) { // Read bit from MSB to LSB
+                byte |= (1 << (FontData::PATTERN_BITS_PER_ROW - 1 - bit)); // Set corresponding bit in byte
             }
         }
         charData[i] = byte;
@@ -99,28 +122,31 @@ void MainFrame::LoadCharacterDataToGrid() {
     for (unsigned char val : charData) {
         logMessage += wxString::Format("%02X ", val);
     }
-    LogMessage(logMessage); // Output the loaded data to the console
+    LogMessage(logMessage);
 
     m_pixelGrid->SetCharacterData(charData);
     LogMessage(wxString::Format("Loaded character %d into grid.", m_currentCharacter));
 }
+
 void MainFrame::SaveCurrentCharacterData() {
     if (m_pixelGrid) {
         std::array<unsigned char, 8> charData;
-        m_pixelGrid->GetCharacterData(charData);
+        m_pixelGrid->GetCharacterData(charData); // Get data from the pixel grid
+
         wxString logMessage = wxString::Format("Saving character %d: ", m_currentCharacter);
         for (unsigned char val : charData) {
             logMessage += wxString::Format("%02X ", val);
         }
         LogMessage(logMessage);
 
-        for (int i = 0; i < 8; ++i) {
-            std::bitset<8> rowBits(charData[i]);
-            m_fontData.characterPatterns[m_currentCharacter * 8 + i] = rowBits;
+        // Iterate through the 8 rows of the current character
+        for (int i = 0; i < FontData::PATTERN_ROWS; ++i) {
+            // Convert the unsigned char row to an std::bitset
+            std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits(charData[i]); // Initialize bitset from unsigned char
+            m_fontData.characterPatterns[m_currentCharacter][i] = rowBits; // Assign the bitset to the correct location
         }
     }
 }
-
 void MainFrame::OnCharSelected(wxSpinEvent& event) {
     SaveCurrentCharacterData(); // Save the data of the previously selected character
     m_currentCharacter = event.GetInt();
@@ -131,4 +157,44 @@ void MainFrame::LogMessage(const wxString& message) {
     if (m_logWindow) {
         m_logWindow->AppendText(message + "\n");
     }
+}
+
+void MainFrame::OnSaveButtonClicked(wxCommandEvent& event) {
+    LogMessage("Save button clicked. Opening file dialog...");
+
+    wxFileDialog saveFileDialog(this, _("Save Font File"), "", "myfont.fnt", // Default filename
+        _("Font Files (*.fnt)|*.fnt|All files (*.*)|*.*"),
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (saveFileDialog.ShowModal() == wxID_OK) {
+        wxString path = saveFileDialog.GetPath();
+        SaveToFile(path);
+    }
+    else {
+        LogMessage("Save operation cancelled by user.");
+    }
+}
+
+void MainFrame::SaveToFile(const wxString& filePath) {
+    LogMessage(wxString::Format("Attempting to save font to: %s", filePath));
+
+    wxFileOutputStream output(filePath); // Open the file for writing
+    if (!output.IsOk()) {
+        LogMessage(wxString::Format("Error: Could not open file for writing: %s", filePath));
+        return; // Exit if file could not be opened
+    }
+
+    // Declare and initialize wxTextOutputStream *only if* output is valid
+    wxTextOutputStream textOutput(output);
+
+    // ... rest of the function, which is now guaranteed to run only if 'output' is valid ...
+    for (int charIdx = 0; charIdx < FontData::NUM_CHARACTERS; ++charIdx) {
+        textOutput << "char " << charIdx << ":\n"; // Write character header
+
+        for (int row = 0; row < FontData::PATTERN_ROWS; ++row) {
+            std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits = m_fontData.characterPatterns[charIdx][row];
+            textOutput << rowBits.to_string() << "\n"; // Write bitset as "01011000" string
+        }
+    }
+    LogMessage(wxString::Format("Font successfully saved to: %s", filePath));
 }
