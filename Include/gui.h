@@ -27,14 +27,18 @@ private:
     wxButton* m_clearButton;
     wxButton* m_saveButton;
     wxButton* m_loadButton;
+	wxButton* m_undoButton;
 
     // Data members
     FontData m_fontData;
+	FontData m_LoadedOriginalFontData; // For future loading functionality
+	// FontData m_DefaultFontData; //Default font data, if needed
     int m_currentCharacter;
 
     // Helper functions (private member functions)
     void SaveCurrentCharacterData();
     void LoadCharacterDataToGrid();
+	void UndueChangesToCharacterData(); // Undue changes to the current character data, if needed
     void LogMessage(const wxString& message);
     void SaveToFile(const wxString& filePath);
     void LoadFromFile(const wxString& filePath);
@@ -44,7 +48,8 @@ private:
     void OnClearButtonClicked(wxCommandEvent& event);
     void OnSaveButtonClicked(wxCommandEvent& event);
     void OnLoadButtonClicked(wxCommandEvent& event); // For future loading functionality
-
+	void OnUndoButtonClicked(wxCommandEvent& event); // Handler for undo button
+   
     wxDECLARE_EVENT_TABLE();
 
     // Custom IDs for controls (inside the class, or globally if outside)
@@ -52,7 +57,8 @@ private:
         ID_CHAR_SELECTOR = wxID_HIGHEST + 1, // Specific ID for char selector
         ID_CLEAR_BUTTON = wxID_HIGHEST + 2,
         ID_SAVE_BUTTON = wxID_HIGHEST + 3,
-        ID_LOAD_BUTTON = wxID_HIGHEST + 4
+        ID_LOAD_BUTTON = wxID_HIGHEST + 4,
+		ID_UNDO_BUTTON = wxID_HIGHEST + 5 // Uncomment if you add an undo button    
     };
 };
 
