@@ -9,13 +9,14 @@
 #include <wx/txtstrm.h>   // For wxTextOutputStream
 #include <wx/textfile.h>  // For wxTextFile, if needed for loading (not used in this save-only version)
 #include <wx/stattext.h>  // For wxStaticText
+#include <wx/tokenzr.h>
 
 // Event Table Definition
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 EVT_SPINCTRL(ID_CHAR_SELECTOR, MainFrame::OnCharSelected)      // Use specific ID
 EVT_BUTTON(ID_CLEAR_BUTTON, MainFrame::OnClearButtonClicked)   // Use specific ID
 EVT_BUTTON(ID_SAVE_BUTTON, MainFrame::OnSaveButtonClicked)     // Add event for Save button
-// EVT_BUTTON(ID_LOAD_BUTTON, MainFrame::OnLoadButtonClicked)   // For future loading functionality
+EVT_BUTTON(ID_LOAD_BUTTON, MainFrame::OnLoadButtonClicked)   // For future loading functionality
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
@@ -55,8 +56,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     controlsSizer->Add(new wxStaticText(mainPanel, wxID_ANY, "Character:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Label
     controlsSizer->Add(m_charSelector, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     controlsSizer->Add(m_clearButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    controlsSizer->Add(m_saveButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Now visible and clickable
-    // controlsSizer->Add(m_loadButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Uncomment when implementing Load
+    controlsSizer->Add(m_saveButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); 
+    controlsSizer->Add(m_loadButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); 
     controlsSizer->AddStretchSpacer(1); // Push controls to the left
 
     // Create the log window (console)
@@ -199,4 +200,119 @@ void MainFrame::SaveToFile(const wxString& filePath) {
         }
     }
     LogMessage(wxString::Format("Font successfully saved to: %s", filePath));
+}
+
+void MainFrame::LoadFromFile(const wxString& filePath) {
+    LogMessage(wxString::Format("Attempting to load font from: %s", filePath));
+
+    wxFileInputStream input(filePath);
+    if (!input.IsOk()) {
+        LogMessage(wxString::Format("Error: Could not open file for reading: %s", filePath));
+        return;
+    }
+
+    wxTextInputStream textInput(input);
+    bool errorOccurred = false;
+    int charIdx = 0; // <--- DECLARE charIdx HERE, initialize to 0
+
+    // Loop to read character data
+    for (/* charIdx is already initialized */; charIdx < FontData::NUM_CHARACTERS; ++charIdx) {
+        // MODIFIED Eof check:
+        if (textInput.GetInputStream().Eof()) {
+            LogMessage(wxString::Format("Info: End of file reached. Attempted to read up to character %d.", charIdx));
+            break;
+        }
+
+        wxString headerLine = textInput.ReadLine();
+        // MODIFIED Eof check (if you also want to check after ReadLine, which is good practice):
+        if (textInput.GetInputStream().Eof() && headerLine.IsEmpty()) {
+            LogMessage(wxString::Format("Info: End of file reached after reading data for %d characters.", charIdx));
+            break;
+        }
+
+        wxString expectedHeaderStart = wxString::Format("char %d:", charIdx);
+        if (!headerLine.StartsWith(expectedHeaderStart)) {
+            LogMessage(wxString::Format("Error: Malformed file. Expected '%s' but got '%s' for character %d.",
+                expectedHeaderStart, headerLine, charIdx));
+            errorOccurred = true;
+            break;
+        }
+
+        for (int row = 0; row < FontData::PATTERN_ROWS; ++row) {
+            // MODIFIED Eof check:
+            if (textInput.GetInputStream().Eof()) {
+                LogMessage(wxString::Format("Error: Unexpected end of file while reading row %d for character %d.", row, charIdx));
+                errorOccurred = true;
+                break;
+            }
+            wxString bitString = textInput.ReadLine();
+            if (bitString.length() != FontData::PATTERN_BITS_PER_ROW) {
+                LogMessage(wxString::Format("Error: Malformed row data for char %d, row %d. Expected %d bits, got %d.",
+                    charIdx, row, FontData::PATTERN_BITS_PER_ROW, (int)bitString.length()));
+                errorOccurred = true;
+                break;
+            }
+
+            for (wxChar c : bitString) {
+                if (c != '0' && c != '1') {
+                    LogMessage(wxString::Format("Error: Invalid character '%c' in bit string for char %d, row %d.", c, charIdx, row));
+                    errorOccurred = true;
+                    break;
+                }
+            }
+            if (errorOccurred) break;
+
+            try {
+                m_fontData.characterPatterns[charIdx][row] = std::bitset<FontData::PATTERN_BITS_PER_ROW>(bitString.ToStdString());
+            }
+            catch (const std::invalid_argument& e) {
+                LogMessage(wxString::Format("Error: Could not parse bit string '%s' for char %d, row %d. Exception: %s", bitString, charIdx, row, e.what()));
+                errorOccurred = true;
+                break;
+            }
+        } // End of row loop
+        if (errorOccurred) break; // Exit char loop if error in row loop
+    } // End of character loop
+
+    // Logging based on outcome
+    if (errorOccurred) {
+        LogMessage(wxString::Format("Font loading failed due to errors while processing character %d. Font data might be incomplete or corrupted.", charIdx));
+        // You might want to clear m_fontData or reload a default state here
+        // m_fontData = FontData(); // Example: revert to a blank font
+    }
+    else if (charIdx < FontData::NUM_CHARACTERS) {
+        // This means the loop exited due to EOF and not all characters were present in the file.
+        LogMessage(wxString::Format("Font loaded. File contained data for %d characters (processed up to character index %d). Remaining characters are unchanged or default.", charIdx, charIdx > 0 ? charIdx - 1 : 0));
+        // Optionally, clear the remainder of m_fontData if partial files should mean the rest is blank:
+        // for (int i = charIdx; i < FontData::NUM_CHARACTERS; ++i) {
+        //    for (int j = 0; j < FontData::PATTERN_ROWS; ++j) {
+        //        m_fontData.characterPatterns[i][j].reset();
+        //    }
+        // }
+    }
+    else {
+        LogMessage(wxString::Format("Font successfully loaded from: %s (%d characters processed).", filePath, charIdx));
+    }
+
+    // Refresh the PixelGrid with the data of the currently selected character
+    LoadCharacterDataToGrid();
+}
+
+
+
+
+void MainFrame::OnLoadButtonClicked(wxCommandEvent& event) {
+    LogMessage("Load button clicked. Opening file dialog...");
+
+    wxFileDialog openFileDialog(this, _("Open Font File"), "", "",
+        _("Font Files (*.fnt)|*.fnt|All files (*.*)|*.*"),
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+    if (openFileDialog.ShowModal() == wxID_OK) {
+        wxString path = openFileDialog.GetPath();
+        LoadFromFile(path);
+    }
+    else {
+        LogMessage("Load operation cancelled by user.");
+    }
 }

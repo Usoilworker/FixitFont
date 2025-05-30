@@ -37,6 +37,7 @@ private:
     void LoadCharacterDataToGrid();
     void LogMessage(const wxString& message);
     void SaveToFile(const wxString& filePath);
+    void LoadFromFile(const wxString& filePath);
 
     // Event Handlers
     void OnCharSelected(wxSpinEvent& event);
