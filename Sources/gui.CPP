@@ -299,8 +299,6 @@ void MainFrame::LoadFromFile(const wxString& filePath) {
 }
 
 
-
-
 void MainFrame::OnLoadButtonClicked(wxCommandEvent& event) {
     LogMessage("Load button clicked. Opening file dialog...");
 
