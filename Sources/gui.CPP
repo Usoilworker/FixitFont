@@ -1,48 +1,66 @@
-// GUI.cpp
 #include "wx/wx.h"
-#include "gui.h"
+#include "gui.h" // Must be first after wx/wx.h
 #include <wx/spinctrl.h>
 #include <array>
 #include <bitset>
 #include <wx/button.h>
-#include <wx/wfstream.h>
-#include <wx/txtstrm.h>
+#include <wx/filedlg.h>   // For wxFileDialog
+#include <wx/wfstream.h>  // For wxFileOutputStream
+#include <wx/txtstrm.h>   // For wxTextOutputStream
+#include <wx/textfile.h>  // For wxTextFile, if needed for loading (not used in this save-only version)
+#include <wx/stattext.h>  // For wxStaticText
 
-// Event Table Defenition
+// Event Table Definition
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-EVT_SPINCTRL(wxID_ANY, MainFrame::OnCharSelected) // Handle character selection
-EVT_BUTTON(wxID_ANY, MainFrame::OnClearButtonClicked)
+EVT_SPINCTRL(ID_CHAR_SELECTOR, MainFrame::OnCharSelected)      // Use specific ID
+EVT_BUTTON(ID_CLEAR_BUTTON, MainFrame::OnClearButtonClicked)   // Use specific ID
+EVT_BUTTON(ID_SAVE_BUTTON, MainFrame::OnSaveButtonClicked)     // Add event for Save button
+// EVT_BUTTON(ID_LOAD_BUTTON, MainFrame::OnLoadButtonClicked)   // For future loading functionality
 wxEND_EVENT_TABLE()
 
-// As stated above end of event table
-
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
-    : wxFrame(nullptr, wxID_ANY, title, pos, size), m_currentCharacter(0) {
+    : wxFrame(nullptr, wxID_ANY, title, pos, size),
+    m_currentCharacter(0),
+    // Initialize member pointers to nullptr to prevent static analysis warnings and runtime issues
+    m_mainPanel(nullptr),
+    m_pixelGrid(nullptr),
+    m_logWindow(nullptr),
+    m_charSelector(nullptr),
+    m_clearButton(nullptr),
+    m_saveButton(nullptr),
+    m_loadButton(nullptr)
+{
     // Create a main panel
     wxPanel* mainPanel = new wxPanel(this, wxID_ANY);
+    m_mainPanel = mainPanel; // Store the main panel pointer
 
     // Create the PixelGrid with a callback
     m_pixelGrid = new PixelGrid(mainPanel, [this]() { LogMessage("Pixel Grid Changed"); SaveCurrentCharacterData(); });
 
     // Create character selection control
-    wxSpinCtrl* charCtrl = new wxSpinCtrl(mainPanel, wxID_ANY, wxString::Format("%d", m_currentCharacter),
+    m_charSelector = new wxSpinCtrl(mainPanel, ID_CHAR_SELECTOR, wxString::Format("%d", m_currentCharacter), // Use specific ID
         wxDefaultPosition, wxDefaultSize, 0, 0, FontData::NUM_CHARACTERS - 1);
-    m_charSelector = charCtrl; // Store the pointer
 
     // Create the clear button
-    wxButton* clearButton = new wxButton(mainPanel, wxID_ANY, "Clear");
-    m_clearButton = clearButton; // Store the button pointer
+    m_clearButton = new wxButton(mainPanel, ID_CLEAR_BUTTON, "Clear"); // Use specific ID
 
-    // Create a horizontal sizer for the character selector and clear button
+    // Create the save button
+    m_saveButton = new wxButton(mainPanel, ID_SAVE_BUTTON, "Save"); // Use specific ID
+
+    // Create the load button (declared but not added to sizer yet for future implementation)
+    m_loadButton = new wxButton(mainPanel, ID_LOAD_BUTTON, "Load"); // Use specific ID
+
+    // Create a horizontal sizer for the character selector and controls
     wxBoxSizer* controlsSizer = new wxBoxSizer(wxHORIZONTAL);
     controlsSizer->Add(new wxStaticText(mainPanel, wxID_ANY, "Character:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Label
     controlsSizer->Add(m_charSelector, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     controlsSizer->Add(m_clearButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    controlsSizer->Add(m_saveButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Now visible and clickable
+    // controlsSizer->Add(m_loadButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5); // Uncomment when implementing Load
     controlsSizer->AddStretchSpacer(1); // Push controls to the left
 
     // Create the log window (console)
-    wxTextCtrl* logWindow = new wxTextCtrl(mainPanel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100), wxTE_MULTILINE | wxTE_READONLY);
-    m_logWindow = logWindow; // Actually create and store the log window
+    m_logWindow = new wxTextCtrl(mainPanel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100), wxTE_MULTILINE | wxTE_READONLY); // Correctly assign to member
 
     // Create a vertical sizer for the main panel
     wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
@@ -59,18 +77,14 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     Fit();
     SetMinSize(GetSize());
 
-    m_mainPanel = mainPanel; // Store the main panel
-
     // Initialize some font data for testing
-    // Note: charA_pattern should also be a std::array<std::bitset<8>, 8>
     std::array<std::bitset<FontData::PATTERN_BITS_PER_ROW>, FontData::PATTERN_ROWS> charA_pattern = {
-        std::bitset<8>("00011000"), std::bitset<8>("00100100"),
-        std::bitset<8>("01000010"), std::bitset<8>("01111110"),
-        std::bitset<8>("10000001"), std::bitset<8>("10000001"),
-        std::bitset<8>("10000001"), std::bitset<8>("00000000")
+        std::bitset<FontData::PATTERN_BITS_PER_ROW>("00011000"), std::bitset<FontData::PATTERN_BITS_PER_ROW>("00100100"),
+        std::bitset<FontData::PATTERN_BITS_PER_ROW>("01000010"), std::bitset<FontData::PATTERN_BITS_PER_ROW>("01111110"),
+        std::bitset<FontData::PATTERN_BITS_PER_ROW>("10000001"), std::bitset<FontData::PATTERN_BITS_PER_ROW>("10000001"),
+        std::bitset<FontData::PATTERN_BITS_PER_ROW>("10000001"), std::bitset<FontData::PATTERN_BITS_PER_ROW>("00000000")
     };
-    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) { // Loop 8 times for the 8 rows
-        // Assign the entire std::bitset for each row
+    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) {
         m_fontData.characterPatterns[65][i] = charA_pattern[i]; // Store 'A' at index 65 (ASCII)
     }
 
@@ -80,9 +94,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 }
 
 MainFrame::~MainFrame() {
-    // Destructor implementation (even if empty)
+    // Destructor implementation (empty is fine if no resources need explicit freeing)
 }
-
 
 void MainFrame::OnClearButtonClicked(wxCommandEvent& event) {
     if (m_pixelGrid) {
@@ -96,23 +109,16 @@ void MainFrame::OnClearButtonClicked(wxCommandEvent& event) {
         LoadCharacterDataToGrid(); // Refresh the grid display
     }
 }
+
 void MainFrame::LoadCharacterDataToGrid() {
     std::array<unsigned char, 8> charData;
-    // Iterate through the 8 rows of the current character
-    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) { // Loop through the 8 rows
-        // Access the std::bitset for the current character's current row
-        // Indexing is now characterPatterns[character_index][row_index]
+    for (int i = 0; i < FontData::PATTERN_ROWS; ++i) {
         std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits = m_fontData.characterPatterns[m_currentCharacter][i];
 
         unsigned char byte = 0;
-        // Convert the bitset row to an unsigned char
         for (int bit = 0; bit < FontData::PATTERN_BITS_PER_ROW; ++bit) {
-            // Check if the bit is set (from left to right in bitset, corresponds to MSB to LSB in byte)
-            // bitset<N> index is 0 for LSB, N-1 for MSB
-            // For drawing, we usually want bit 0 to be the leftmost pixel, bit 7 to be the rightmost.
-            // If bitset<8>[0] is the rightmost, and bitset<8>[7] is the leftmost:
-            if (rowBits[FontData::PATTERN_BITS_PER_ROW - 1 - bit]) { // Read bit from MSB to LSB
-                byte |= (1 << (FontData::PATTERN_BITS_PER_ROW - 1 - bit)); // Set corresponding bit in byte
+            if (rowBits[FontData::PATTERN_BITS_PER_ROW - 1 - bit]) {
+                byte |= (1 << (FontData::PATTERN_BITS_PER_ROW - 1 - bit));
             }
         }
         charData[i] = byte;
@@ -131,7 +137,7 @@ void MainFrame::LoadCharacterDataToGrid() {
 void MainFrame::SaveCurrentCharacterData() {
     if (m_pixelGrid) {
         std::array<unsigned char, 8> charData;
-        m_pixelGrid->GetCharacterData(charData); // Get data from the pixel grid
+        m_pixelGrid->GetCharacterData(charData);
 
         wxString logMessage = wxString::Format("Saving character %d: ", m_currentCharacter);
         for (unsigned char val : charData) {
@@ -139,30 +145,30 @@ void MainFrame::SaveCurrentCharacterData() {
         }
         LogMessage(logMessage);
 
-        // Iterate through the 8 rows of the current character
         for (int i = 0; i < FontData::PATTERN_ROWS; ++i) {
-            // Convert the unsigned char row to an std::bitset
-            std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits(charData[i]); // Initialize bitset from unsigned char
-            m_fontData.characterPatterns[m_currentCharacter][i] = rowBits; // Assign the bitset to the correct location
+            std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits(charData[i]);
+            m_fontData.characterPatterns[m_currentCharacter][i] = rowBits;
         }
     }
 }
+
 void MainFrame::OnCharSelected(wxSpinEvent& event) {
-    SaveCurrentCharacterData(); // Save the data of the previously selected character
+    SaveCurrentCharacterData();
     m_currentCharacter = event.GetInt();
-    LoadCharacterDataToGrid(); // Load the data for the newly selected character
+    LoadCharacterDataToGrid();
 }
 
 void MainFrame::LogMessage(const wxString& message) {
     if (m_logWindow) {
         m_logWindow->AppendText(message + "\n");
+        m_logWindow->ShowPosition(m_logWindow->GetLastPosition());
     }
 }
 
 void MainFrame::OnSaveButtonClicked(wxCommandEvent& event) {
     LogMessage("Save button clicked. Opening file dialog...");
 
-    wxFileDialog saveFileDialog(this, _("Save Font File"), "", "myfont.fnt", // Default filename
+    wxFileDialog saveFileDialog(this, _("Save Font File"), "", "myfont.fnt",
         _("Font Files (*.fnt)|*.fnt|All files (*.*)|*.*"),
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
@@ -178,22 +184,18 @@ void MainFrame::OnSaveButtonClicked(wxCommandEvent& event) {
 void MainFrame::SaveToFile(const wxString& filePath) {
     LogMessage(wxString::Format("Attempting to save font to: %s", filePath));
 
-    wxFileOutputStream output(filePath); // Open the file for writing
+    wxFileOutputStream output(filePath);
     if (!output.IsOk()) {
         LogMessage(wxString::Format("Error: Could not open file for writing: %s", filePath));
-        return; // Exit if file could not be opened
+        return;
     }
 
-    // Declare and initialize wxTextOutputStream *only if* output is valid
     wxTextOutputStream textOutput(output);
-
-    // ... rest of the function, which is now guaranteed to run only if 'output' is valid ...
     for (int charIdx = 0; charIdx < FontData::NUM_CHARACTERS; ++charIdx) {
-        textOutput << "char " << charIdx << ":\n"; // Write character header
-
+        textOutput << "char " << charIdx << ":\n";
         for (int row = 0; row < FontData::PATTERN_ROWS; ++row) {
             std::bitset<FontData::PATTERN_BITS_PER_ROW> rowBits = m_fontData.characterPatterns[charIdx][row];
-            textOutput << rowBits.to_string() << "\n"; // Write bitset as "01011000" string
+            textOutput << rowBits.to_string() << "\n";
         }
     }
     LogMessage(wxString::Format("Font successfully saved to: %s", filePath));
